@@ -7,12 +7,12 @@ BUILD_DIR = build
 
 # 通过参数设置 DESTDIR
 # 例如：make install DESTDIR=/apps/libs/
-DESTDIR = ~/.config/cffi/
+DESTDIR = ~/.config/waybar/cffi/
 
 ALL = $(TARGET)
 
 $(TARGET):
-	@meson setup $(BUILD_DIR)
+	@meson setup $(BUILD_DIR) -Dcpp_args=-DERROR_ENABLED
 	@meson compile -C $(BUILD_DIR) $(LIBNAME)
 	@echo "Build complete!"
 

@@ -19,7 +19,6 @@ struct Mod {
   void *waybar_module;                  // waybar模块对象
   GtkBox *container;                    // GTK容器
   std::unique_ptr<WayLyrics> wayLyrics; // 歌词显示管理器
-  // std::unordered_map<std::string, std::chrono::steady_clock::time_point> lastActionTimes; // 记录动作最后执行时间
 };
 
 // 全局实例计数（用于调试）
@@ -83,7 +82,7 @@ void *wbcffi_init(const wbcffi_init_info *init_info,
         parseConfig(config_entries, config_entries_len);
 
     // 创建插件实例结构体
-    Mod *inst = (Mod *)malloc(sizeof(Mod));
+    Mod *inst = new (std::nothrow) Mod;
     if (!inst) {
       ERROR("waylyrics: 内存分配失败");
       return nullptr;
@@ -91,7 +90,6 @@ void *wbcffi_init(const wbcffi_init_info *init_info,
     // 初始化
     inst->container = nullptr;
     inst->waybar_module = init_info->obj;
-    inst->wayLyrics = nullptr;
     try{
       inst->wayLyrics = std::make_unique<WayLyrics>(cacheDir, updateInterval, cssClass);
     } catch (const std::exception &e) {
@@ -101,7 +99,11 @@ void *wbcffi_init(const wbcffi_init_info *init_info,
     }
     if (!inst->wayLyrics) {
       ERROR("waylyrics: 初始化失败，无法创建WayLyrics实例");
-
+    }
+    if(!inst->wayLyrics) {
+      DEBUG("waylyrics: 初始化失败，无法创建WayLyrics实例");
+      delete inst;
+      return nullptr;
     }
     // 创建GTK容器和标签
     GtkContainer *root = init_info->get_root_widget(init_info->obj);

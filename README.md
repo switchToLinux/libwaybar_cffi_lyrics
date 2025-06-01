@@ -55,6 +55,13 @@ make install DESTDIR=/path/to/libs/
         "cache_dir": "~/.cache/libwaybar_cffi_lyrics",
         "id": "waybar_cffi_lyrics",
         "class": "lyrics-mpv",
+        "actions": {
+            "on-click": "toggle",
+            "on-click-right": "loop",
+            "on-click-middle": "shuffle",
+            "on-scroll-up": "prev",
+            "on-scroll-down": "next"
+        },
         "interval": 3,
         "dest": "mpv"
     },
@@ -68,6 +75,14 @@ make install DESTDIR=/path/to/libs/
 - interval: 歌词刷新时间间隔，单位秒，默认为 3
 - dest: 播放器实例名称,暂时没有实现此功能, mpris表示所有支持mpris协议的播放器，应用于dbus的 **org.mpris.MediaPlayer2.{dest}**，比如 mpv, vlc, mpris 等.
 - cache_dir: 歌词缓存目录, 用于缓存歌词, 避免每次都请求歌词, 默认为 ~/.cache/libwaybar_cffi_lyrics
+- actions: 动作配置, 目前支持的动作有:
+  - toggle: 播放器播放/暂停
+  - loop: 循环播放
+  - shuffle: 随机播放
+  - prev: 上一首
+  - next: 下一首
+
+
 
 
 ## 问题提醒

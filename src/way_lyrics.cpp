@@ -27,12 +27,59 @@ void displayState(const PlayerState &state) {
     //   DEBUG("    Album: %s", state.metadata.album.c_str());
 }
 
+// 函数功能: 目录检查和创建（并且识别$HOME环境变量和 ~ 符号）
+std::filesystem::path checkDirectory(const std::string &path) {
+  std::filesystem::path dir(path);
+  // 检查是否包含 $HOME 环境变量
+  if (dir.string().starts_with("~")) {
+    const char *home = getenv("HOME");
+    if (home) {
+      dir = std::filesystem::path(home) / dir.lexically_relative("~");
+    } else {
+      throw std::runtime_error("HOME environment variable not set");
+    }
+  } else if(dir.string().starts_with("$HOME")) {
+    const char *home = getenv("HOME");
+    if (home) {
+      dir = std::filesystem::path(home) / dir.lexically_relative("$HOME");
+    } else {
+      throw std::runtime_error("HOME environment variable not set");
+    }
+  } else if(dir.string().starts_with("/")) { // 绝对路径
+    const char *home = getenv("HOME");
+    if (home) {
+      dir = std::filesystem::path(home) / dir.lexically_relative("~/");
+    } else {
+      throw std::runtime_error("HOME environment variable not set");
+    }
+  } else { // 如果不是绝对路径，直接返回异常
+    throw std::runtime_error("Invalid directory path: " + dir.string());
+  }
+  // 确保目录存在
+  if (!std::filesystem::exists(dir)) {
+    std::filesystem::create_directories(dir);
+  }
+  if (!std::filesystem::is_directory(dir)) {
+    throw std::runtime_error("Path is not a directory: " + dir.string());
+  }
+  DEBUG("  >> Directory checked and created: %s", dir.c_str());
+  return dir;
+}
+
+
 WayLyrics::WayLyrics(const std::string &cacheDir, unsigned int updateInterval,
                      const std::string &cssClass)
     : updateInterval_(updateInterval), cssClass_(cssClass),
       isRunning_(false) {
-  // 初始化缓存目录
-  cachePath = std::filesystem::path(cacheDir);
+  // 初始化缓存目录(识别 $HOME 环境变量或者~符号)
+  try {
+    cachePath = checkDirectory(cacheDir);
+  } catch (const std::exception &e) {
+    ERROR("  >> Failed to initialize cache directory: %s", e.what());
+    throw;
+  }
+  
+  DEBUG("  >> Cache directory: %s", cachePath.c_str());
   // 初始化D-Bus连接和PlayerManager
   auto dbusUniqueConn = sdbus::createSessionBusConnection();
   dbusConn_ = std::shared_ptr<sdbus::IConnection>(dbusUniqueConn.release());
