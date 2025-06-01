@@ -23,24 +23,3 @@ shared_library('waybar_cffi_lyrics',
     include_directories: incdir,
     name_prefix: 'lib'
 )
-
-executable('demo',
-    ['./demo/demo.cpp'],
-    dependencies: [libcurl, gtk, sdbus, glm, epoxy],
-    include_directories: incdir,
-    name_prefix: ''
-)
-
-executable('sigDemo',
-    ['./demo/SigDemo.cpp'],
-    dependencies: [libcurl, gtk, sdbus, glm, epoxy],
-    include_directories: incdir,
-    name_prefix: ''
-)
-
-executable('playerDemo',
-    ['./demo/PlayerManager.cpp'],
-    dependencies: [libcurl, gtk, sdbus, glm, epoxy],
-    include_directories: incdir,
-    name_prefix: ''
-)
