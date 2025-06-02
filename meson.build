@@ -1,6 +1,6 @@
 project(
     'waybar_cffi_lyrics', 'cpp',
-    version: '0.2.0',
+    version: '0.2.2',
     license: 'MIT',
     default_options : ['c_std=c23', 'cpp_std=c++23']
 )
@@ -8,40 +8,20 @@ project(
 add_project_arguments('-Ofast', '-g3', language : 'cpp')
 ## add_project_arguments('-DDEBUG_ENABLED', language : 'cpp')
 
-# 获取 Git 信息和构建时间
-git_tag = run_command('git', 'describe', '--tags', '--abbrev=0', check: false).stdout().strip()
-if git_tag == ''
-    git_tag = 'unknown'
-endif
-
-git_commit = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
-if git_commit == ''
-    git_commit = 'unknown'
-endif
-
 build_time = run_command('date', '+%Y%m%d%H%M%S', check: false).stdout().strip()
-if build_time == ''
-    build_time = 'unknown'
-endif
-
 version = meson.project_version()
 
 
 # 注入编译宏
 add_project_arguments([
-    '-DBUILD_TIME="@0@"'.format(build_time),
-    '-DGIT_TAG="@0@"'.format(git_tag),
-    '-DGIT_COMMIT="@0@"'.format(git_commit),
-    '-DPROJECT_VERSION="@0@"'.format(version)
+    '-DBUILD_VERSION="@0@"'.format(version),
+    '-DBUILD_TIME="@0@"'.format(build_time)
 ], language: 'cpp')
 
 # 显示构建信息
 message('Building waybar_cffi_lyrics:')
-message('  Version:"@0@"'.format(version))
-message('  Git Tag:"@0@"'.format(git_tag))
-message('  Git Commit:"@0@"'.format(git_commit))
-message('  Build Time:"@0@"'.format(build_time))
-
+message('  Version: @0@'.format(version))
+message('  Build time: @0@'.format(build_time))
 
 incdir = include_directories('include')
 

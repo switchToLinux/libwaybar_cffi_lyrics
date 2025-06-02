@@ -53,9 +53,9 @@ inline std::string getCurrentTimeStr() {
   do {                                                                         \
     if (LOG_LEVEL >= level) {                                                  \
       std::string timeStr = getCurrentTimeStr();                               \
-      std::lock_guard<std::mutex> lock(log_mutex); /* 加锁保护输出 */          \
-      fprintf(stderr, "[%s] [git: %s %s %s] [%s] %s:%d(%s): " format "\n",     \
-              timeStr.c_str(), GIT_TAG, GIT_COMMIT, BUILD_TIME, tag, __FILE__, \
+      std::lock_guard<std::mutex> lock(log_mutex);                             \
+      fprintf(stderr, "[%s] [%s %s] [%s] %s:%d(%s): " format "\n",             \
+              timeStr.c_str(), BUILD_VERSION, BUILD_TIME, tag, __FILE__,       \
               __LINE__, __func__, ##__VA_ARGS__);                              \
     }                                                                          \
   } while (0)
