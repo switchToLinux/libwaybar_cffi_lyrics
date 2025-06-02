@@ -1,7 +1,6 @@
 #include "../include/player_manager.h"
 #include "common.h"
 #include <cstddef>
-#include <iostream>
 #include <mutex>
 #include <sdbus-c++/Types.h>
 #include <sdbus-c++/sdbus-c++.h>

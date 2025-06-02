@@ -21,17 +21,6 @@ debug:
 	@meson compile -C $(BUILD_DIR) $(LIBNAME)
 	@echo "Build complete!"
 
-demos:
-	@meson setup $(BUILD_DIR) -Dcpp_args=-DDEBUG_ENABLED
-	@meson compile -C $(BUILD_DIR) demo
-
-playerDemo:
-	@meson setup $(BUILD_DIR) -Dcpp_args=-DDEBUG_ENABLED
-	@meson compile -C $(BUILD_DIR) playerDemo
-sigDemo:
-	@meson setup $(BUILD_DIR) -Dcpp_args=-DDEBUG_ENABLED
-	@meson compile -C $(BUILD_DIR) sigDemo
-
 install:
 	@if [ ! -d $(DESTDIR) ]; then \
 		mkdir -p $(DESTDIR); \
