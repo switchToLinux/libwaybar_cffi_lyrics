@@ -195,7 +195,7 @@ void PlayerManager::startMonitoring() {
     INFO("Found player: %s", name.c_str());
     addNewPlayer(name); // 新播放器启动
   }
-  updatePlayerState();
+  updatePlayerState(); // 更新当前播放器状态
   DEBUG("Current player: [%s]", currentPlayer_.c_str());
   INFO("Starting D-Bus signal monitoring");
   // 注册NameOwnerChanged信号监听器
@@ -274,8 +274,9 @@ void PlayerManager::parseMetadata(
 }
 void PlayerManager::addNewPlayer(const std::string &serviceName) {
   // 优先使用musicfox播放器
-  if (currentPlayer_.find("musicfox") == std::string::npos) {
+  if (serviceName.contains("musicfox")) {
     currentPlayer_ = serviceName;
+    INFO("Using musicfox player: %s", serviceName.c_str());
   }
   try {
     // 创建播放器实例代理
