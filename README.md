@@ -62,6 +62,9 @@ make install DESTDIR=/path/to/libs/
             "on-scroll-up": "prev",
             "on-scroll-down": "next"
         },
+        "max_length": 30,
+        "lyrics-title-max-length": 30,
+        "lyrics-max-duration": 300,
         "interval": 3,
         "dest": "mpv"
     },
@@ -73,6 +76,9 @@ make install DESTDIR=/path/to/libs/
 - id: css样式id ,默认值为 waybar_cffi_lyrics
 - class: css样式class，默认不设置
 - interval: 歌词刷新时间间隔，单位秒，默认为 3
+- max_length: 歌词最大长度，默认为 30
+- lyrics-title-max-length: 歌词标题最大长度，默认为 30
+- lyrics-max-duration: 歌词最大显示时间，单位秒，默认为 300
 - dest: 播放器实例名称,暂时没有实现此功能, mpris表示所有支持mpris协议的播放器，应用于dbus的 **org.mpris.MediaPlayer2.{dest}**，比如 mpv, vlc, mpris 等.
 - cache_dir: 歌词缓存目录, 用于缓存歌词, 避免每次都请求歌词, 默认为 ~/.cache/libwaybar_cffi_lyrics
 - actions: 动作配置, 目前支持的动作有:

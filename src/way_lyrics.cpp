@@ -67,13 +67,11 @@ std::filesystem::path checkDirectory(const std::string &path) {
 }
 
 
-WayLyrics::WayLyrics(const std::string &cacheDir, unsigned int updateInterval,
-                     const std::string &cssClass)
-    : updateInterval_(updateInterval), cssClass_(cssClass),
-      isRunning_(false) {
+WayLyrics::WayLyrics(const ConfigParams &params)
+    : params_(params), isRunning_(false) {
   // 初始化缓存目录(识别 $HOME 环境变量或者~符号)
   try {
-    cachePath = checkDirectory(cacheDir);
+    cachePath = checkDirectory(params.cacheDir);
   } catch (const std::exception &e) {
     ERROR("  >> Failed to initialize cache directory: %s", e.what());
     throw;
@@ -86,18 +84,28 @@ WayLyrics::WayLyrics(const std::string &cacheDir, unsigned int updateInterval,
   playerManager_ = std::make_unique<PlayerManager>(dbusConn_, [this](const PlayerState &state) {
         DEBUG("  >> PlayerState updated: %s", state.playerName.c_str());
         currentState_ = state;
-        // 如果歌词为空且状态为播放中，则尝试获取歌词
+        if(currentState_.metadata.title.empty()) {
+          DEBUG("  >> Title is empty, skipping lyrics query");
+          return;
+        }
+        // 如果标题长度超过限制，则不查询歌词
+        if (currentState_.metadata.title.length() > params_.lyricsTitleMaxLength) {
+          DEBUG("  >> Title length exceeds limit, skipping lyrics query for: %s", currentState_.metadata.title.c_str());
+          return;
+        }
+        // 如果音频时长超过限制，则不查询歌词
+        if (currentState_.metadata.length > params_.lyricsMaxDuration * 1000) {
+          DEBUG("  >> Audio duration exceeds limit, skipping lyrics query for: %s , length:%ld s", currentState_.metadata.title.c_str(), currentState_.metadata.length/1000);
+          return;
+        }
+        // 如果歌词为空且状态为播放中，则尝试获取歌词(增加过滤条件：避免浏览器播放视频时获取歌词)
         if (currentState_.metadata.lyrics.empty() &&
             currentState_.status == PlaybackStatus::Playing) {
-            DEBUG("  >> Fetching lyrics for: %s by %s",
-                  currentState_.metadata.title.c_str(),
-                  currentState_.metadata.artist.c_str());
+            INFO("  >> Fetching lyrics for: %s by %s", currentState_.metadata.title.c_str(), currentState_.metadata.artist.c_str());
             try {
-              currentState_.metadata.lyrics = getLyrics(
-                  currentState_.metadata.title, currentState_.metadata.artist);
+              currentState_.metadata.lyrics = getLyrics(currentState_.metadata.title, currentState_.metadata.artist);
               if (currentState_.metadata.lyrics.empty()) {
-                currentState_.metadata.lyrics =
-                    getLyrics(currentState_.metadata.title, "");
+                currentState_.metadata.lyrics = getLyrics(currentState_.metadata.title, "");
               }
             } catch (const std::exception &e) {
               WARN("  >> Failed to get lyrics: %s", e.what());
@@ -105,10 +113,6 @@ WayLyrics::WayLyrics(const std::string &cacheDir, unsigned int updateInterval,
         }
         currentState_.position += 200; // 微调预览歌词的时间
       });
-  
-  INFO("  >> WayLyrics initialized"
-       " with cache path: %s, update interval: %u seconds, CSS class: %s",
-       cachePath.c_str(), updateInterval_, cssClass_.c_str());
 }
 WayLyrics::~WayLyrics() {
   INFO("  >> WayLyrics destroyed");
@@ -323,7 +327,7 @@ void WayLyrics::start(GtkLabel *label) {
         updateLabelText(displayLabel_, currentState_.metadata.lyrics,
                       currentState_.position, prefix, playerStatus);
         // 短间隔睡眠并检查 isRunning_，减少退出延迟
-        for (unsigned int i = 0; i < updateInterval_ && isRunning_; ++i) {
+        for (unsigned int i = 0; i < params_.updateInterval && isRunning_; ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
           if (isRunning_ && currentState_.status == PlaybackStatus::Playing) {
             currentState_.position += 1000;

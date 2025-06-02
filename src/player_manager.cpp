@@ -273,9 +273,18 @@ void PlayerManager::parseMetadata(
 }
 void PlayerManager::addNewPlayer(const std::string &serviceName) {
   // 优先使用musicfox播放器
-  if (serviceName.contains("musicfox")) {
+  if (currentPlayer_.contains("musicfox")) {
     currentPlayer_ = serviceName;
     INFO("Using musicfox player: %s", serviceName.c_str());
+  }
+  // 其次是 mpv 播放器
+  if(!currentPlayer_.contains("musicfox") && serviceName.contains("mpv")) {
+    currentPlayer_ = serviceName;
+    INFO("Using mpv player: %s", serviceName.c_str());
+  }
+  if (currentPlayer_.empty()) {
+    currentPlayer_ = serviceName;
+    INFO("Using first player: %s", serviceName.c_str());
   }
   try {
     // 创建播放器实例代理

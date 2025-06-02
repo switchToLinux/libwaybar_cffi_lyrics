@@ -1,6 +1,7 @@
 #ifndef WAYLYRICS_WAY_LYRICS_H
 #define WAYLYRICS_WAY_LYRICS_H
 
+#include "common.h"
 #include "player_manager.h"
 #include <atomic>
 #include <filesystem>
@@ -13,11 +14,35 @@
 
 const std::string NOPLAYER = "...";
 
+// 配置参数结构体
+struct ConfigParams {
+  std::string cssClass; // 默认CSS类名
+  std::string labelId;  // 默认标签ID
+  std::string destName; // 默认播放器名称
+  std::string cacheDir; // 缓存目录（无默认值，需显式设置）
+  int updateInterval;   // 默认更新间隔（秒）
+  int maxLength;        // 默认最大歌词长度（字符）
+  int lyricsTitleMaxLength; // 限制音频的标题长度（字符），超过长度的标题不会查询歌词
+  int lyricsMaxDuration; // 限制音频的最大时长（秒），超过时长的歌词不会查询歌词
+};
+
+inline void displayConfig(const ConfigParams &params) {
+  INFO("config params:");
+  INFO("  cssClass: %s", params.cssClass.c_str());
+  INFO("  labelId: %s", params.labelId.c_str());
+  INFO("  destName: %s", params.destName.c_str());
+  INFO("  cacheDir: %s", params.cacheDir.c_str());
+  INFO("  updateInterval: %d", params.updateInterval);
+  INFO("  maxLength: %d", params.maxLength);
+  INFO("  lyricsTitleMaxLength: %d", params.lyricsTitleMaxLength);
+  INFO("  lyricsMaxDuration: %d", params.lyricsMaxDuration);
+}
+
+
 class WayLyrics {
 public:
   // 构造函数：传入配置参数（缓存目录、更新间隔、CSS类名等）
-  WayLyrics(const std::string &cacheDir, unsigned int updateInterval,
-            const std::string &cssClass);
+  WayLyrics(const ConfigParams &params);
   ~WayLyrics();
 
   // 核心控制方法
@@ -42,9 +67,8 @@ private:
 
 
   // 成员变量
+  ConfigParams params_;                // 配置参数
   std::filesystem::path cachePath;     // 歌词缓存目录
-  unsigned int updateInterval_;        // 歌词刷新间隔（秒）
-  std::string cssClass_;               // GTK标签的CSS类名
   GtkLabel *displayLabel_{nullptr};    // 绑定的GTK标签（用于显示歌词）
   std::atomic<bool> isRunning_{false}; // 运行状态标记（原子操作保证线程安全）
   std::thread updateThread_{};         // 歌词刷新后台线程
