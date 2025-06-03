@@ -20,6 +20,7 @@ struct ConfigParams {
   std::string labelId;  // 默认标签ID
   std::string destName; // 默认播放器名称
   std::string cacheDir; // 缓存目录（无默认值，需显式设置）
+  std::string format;   // 歌词格式
   int updateInterval;   // 默认更新间隔（秒）
   int maxLength;        // 默认最大歌词长度（字符）
   int lyricsTitleMaxLength; // 限制音频的标题长度（字符），超过长度的标题不会查询歌词
@@ -32,6 +33,7 @@ inline void displayConfig(const ConfigParams &params) {
   INFO("  labelId: %s", params.labelId.c_str());
   INFO("  destName: %s", params.destName.c_str());
   INFO("  cacheDir: %s", params.cacheDir.c_str());
+  INFO("  format: %s", params.format.c_str());
   INFO("  updateInterval: %d", params.updateInterval);
   INFO("  maxLength: %d", params.maxLength);
   INFO("  lyricsTitleMaxLength: %d", params.lyricsTitleMaxLength);

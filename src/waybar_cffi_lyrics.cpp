@@ -16,6 +16,7 @@ constexpr int defaultMaxLength = 30;    // 字符
 constexpr int defaultLyricsMaxDuration = 300; // 秒
 constexpr int defaultLyricsTitleMaxLength = 30; // 字符
 constexpr const char *loadingText = "加载歌词...";
+constexpr const char *defaultFormat = "{player}/{title} {lyrics}";
 
 // 插件实例结构体（管理生命周期）
 struct Mod {
@@ -36,6 +37,7 @@ static ConfigParams parseConfig(const wbcffi_config_entry *config_entries,
       .labelId = defaultLabelId,
       .destName = defaultDestName,
       .cacheDir = std::string(getenv("HOME")) + "/.cache/waylyrics",
+      .format = defaultFormat,
       .updateInterval = defaultUpdateInterval,
      .maxLength = defaultMaxLength,
      .lyricsTitleMaxLength = defaultLyricsTitleMaxLength,
@@ -54,6 +56,8 @@ static ConfigParams parseConfig(const wbcffi_config_entry *config_entries,
       params.updateInterval = std::max(1, atoi(entry.value)); // 最小间隔1秒
     } else if (strncmp(entry.key, "cache_dir", 10) == 0) {
       params.cacheDir = entry.value;
+    } else if(strncmp(entry.key, "format", 6) == 0) {
+      params.format = entry.value;
     } else if (strncmp(entry.key, "max-length", 10) == 0) {
       params.maxLength = std::max(10, atoi(entry.value));
     } else if(strncmp(entry.key, "lyrics-max-duration", 19) == 0) {

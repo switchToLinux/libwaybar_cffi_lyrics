@@ -55,6 +55,7 @@ make install DESTDIR=/path/to/libs/
         "cache_dir": "~/.cache/libwaybar_cffi_lyrics",
         "id": "waybar_cffi_lyrics",
         "class": "lyrics-mpv",
+        "format": "{player} - {title} {elapsed}/{duration} {lyrics}",
         "actions": {
             "on-click": "toggle",
             "on-click-right": "loop",
@@ -87,6 +88,15 @@ make install DESTDIR=/path/to/libs/
   - shuffle: 随机播放
   - prev: 上一首
   - next: 下一首
+- format: 歌词格式, 支持的变量有:
+  - player: 播放器名称: musicfox/mpv/vlc/firefox/chromium
+  - status: 播放状态, playing/paused/stopped
+  - title: 歌曲标题
+  - artist: 歌手
+  - album: 专辑
+  - elapsed: 已播放时间
+  - duration: 歌曲总时长
+  - lyrics: 歌词
 
 
 

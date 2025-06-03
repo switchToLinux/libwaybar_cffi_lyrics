@@ -89,7 +89,7 @@ WayLyrics::WayLyrics(const ConfigParams &params)
           return;
         }
         // 如果标题长度超过限制，则不查询歌词
-        if (currentState_.metadata.title.length() > params_.lyricsTitleMaxLength) {
+        if (currentState_.metadata.title.length() > static_cast<size_t>(params_.lyricsTitleMaxLength)) {
           DEBUG("  >> Title length exceeds limit, skipping lyrics query for: %s", currentState_.metadata.title.c_str());
           return;
         }
@@ -250,19 +250,8 @@ struct UpdateData {
   std::string text;
   std::string status;
 };
-static void updateLabelText(GtkLabel *label, const std::string &text,
-                            uint64_t position, std::string prefix = "",
-                            const std::string &playerStatus = "playing") {
-  static std::string lastText = ""; // 记录上一次的歌词行
-  auto line = getSyncedLine(position, text);
-
-  line = prefix + line;
-  if (line.empty() || lastText == line) { // 减少不必要的更新
-    DEBUG("  >> No lyrics or same line, skipping update: [%s]", line.c_str());
-    return;
-  }
-  lastText = line;
-  DEBUG("  >> Updating label: positon:%ld, text: %s", position, line.c_str());
+static void updateLabelText(GtkLabel *label, const std::string &text,const std::string &playerStatus = "playing") {
+  
   // 使用 gdk_threads_add_idle 提交到主线程执行
   gdk_threads_add_idle(
       [](gpointer data) -> gboolean {
@@ -273,7 +262,11 @@ static void updateLabelText(GtkLabel *label, const std::string &text,
     // 检查标签是否存活
     if (GTK_IS_LABEL(updateData->label)) {
       // 设置标签文本
-      gtk_label_set_text(updateData->label, updateData->text.c_str());
+      auto content = updateData->text;
+      if(updateData->status != "playing") {
+        content = "[ " + updateData->status + " ]" + content;
+      }
+      gtk_label_set_text(updateData->label, content.c_str());
       // 添加播放状态对应的 CSS class（如 "playing" 或 "paused"）
       auto context =
           gtk_widget_get_style_context(GTK_WIDGET(updateData->label));
@@ -286,7 +279,7 @@ static void updateLabelText(GtkLabel *label, const std::string &text,
 
     delete updateData; // 释放动态分配的内存
     return FALSE;
-    }, new UpdateData{label, line, playerStatus}  // 传递结构体实例
+    }, new UpdateData{label, text, playerStatus}  // 传递结构体实例
   );
 }
 
@@ -300,34 +293,85 @@ void WayLyrics::start(GtkLabel *label) {
   updateThread_ = std::thread([this]() {
     while (isRunning_) {
       DEBUG("  >> Update thread started");
-      std::string prefix = "";
       std::string lyricsLine = "";
       std::string playerStatus = "playing";
+      std::string realContent = params_.format;
+      static std::string lastText = ""; // 记录上一次的歌词行
       try {
-        if (!currentState_.metadata.title.empty()) {
-          prefix = "《" + currentState_.metadata.title + "》" +
-                    currentState_.metadata.artist + " - ";
-        } else {
-          prefix = "[no title]" + currentState_.metadata.artist + " - ";
+        // 解析 format 格式，替换为真实数据并保存到 realContent 中
+        // 替换 可能存在的参数 {title} {artist} {lyrics} {album} {status} {elapsed} {duration} {player}
+        size_t pos;
+
+        // 安全替换 {title}（长度7）
+        if ((pos = realContent.find("{title}")) != std::string::npos) {
+            realContent.replace(pos, 7, currentState_.metadata.title);
         }
+
+        // 安全替换 {artist}（长度8）
+        if ((pos = realContent.find("{artist}")) != std::string::npos) {
+            realContent.replace(pos, 8, currentState_.metadata.artist);
+        }
+
+        // 安全替换 {album}（长度7）
+        if ((pos = realContent.find("{album}")) != std::string::npos) {
+            realContent.replace(pos, 7, currentState_.metadata.album);
+        }
+
+        // 安全替换 {status}（长度7）
+        if ((pos = realContent.find("{status}")) != std::string::npos) {
+            realContent.replace(pos, 7, playerStatus);
+        }
+
+        // 安全替换 {elapsed}（长度9）
+        if ((pos = realContent.find("{elapsed}")) != std::string::npos) {
+            realContent.replace(pos, 9, formatMilliseconds(currentState_.position));
+        }
+
+        // 安全替换 {duration}（长度10）
+        if ((pos = realContent.find("{duration}")) != std::string::npos) {
+            realContent.replace(pos, 10, formatMilliseconds(currentState_.metadata.length));
+        }
+        // {player} 替换为当前播放器名称,需要处理 currentState_.playerName 前缀和后缀信息(如 org.mpris.MediaPlayer2.firefox.instancexxx 只解析为 firefox) 
+        if((pos = realContent.find("{player}")) != std::string::npos) {
+            std::string playerName = "";
+            // 先判断是否包含 org.mpris.MediaPlayer2.
+            if (currentState_.playerName.find("org.mpris.MediaPlayer2.") != std::string::npos) {
+              // 提取 org.mpris.MediaPlayer2. 后的部分
+              playerName = currentState_.playerName.substr(23);
+              // 找到第一个点的位置
+              size_t dotPos = playerName.find('.');
+              if (dotPos != std::string::npos) {
+                // 提取第一个点之前的部分
+                playerName = playerName.substr(0, dotPos);
+              }
+            } else {
+              playerName = currentState_.playerName;
+            }
+            // 替换 {player}
+            realContent.replace(params_.format.find("{player}"), 8, playerName);
+        }
+
         if (currentState_.status == PlaybackStatus::Playing) {
           playerStatus = "playing";
           if (currentState_.metadata.lyrics.empty()) {
             lyricsLine = "no lyrics...";
           } else {
-            lyricsLine = currentState_.metadata.lyrics;
+            lyricsLine = getSyncedLine(currentState_.position, currentState_.metadata.lyrics);
           }
         } else if(currentState_.status == PlaybackStatus::Paused) {
           playerStatus = "paused";
-          prefix = "paused...";
         } else {
           playerStatus = "stopped";
-          prefix = "stopped...";
         }
-        updateLabelText(displayLabel_, currentState_.metadata.lyrics,
-                      currentState_.position, prefix, playerStatus);
+        // 替换{lyrics}歌词行
+        if((pos = realContent.find("{lyrics}")) != std::string::npos) {
+          realContent.replace(pos, 8, lyricsLine);
+        }
+        
+        // 只有 歌词行 不为空 并且 发生变化时才更新标签(需要更新时间情况下需要每秒钟都更新标签)
+        updateLabelText(displayLabel_, realContent, playerStatus);
         // 短间隔睡眠并检查 isRunning_，减少退出延迟
-        for (unsigned int i = 0; i < params_.updateInterval && isRunning_; ++i) {
+        for (int i = 0; i < params_.updateInterval && isRunning_; ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
           if (isRunning_ && currentState_.status == PlaybackStatus::Playing) {
             currentState_.position += 1000;

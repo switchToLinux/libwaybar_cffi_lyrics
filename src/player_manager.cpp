@@ -273,7 +273,7 @@ void PlayerManager::parseMetadata(
 }
 void PlayerManager::addNewPlayer(const std::string &serviceName) {
   // 优先使用musicfox播放器
-  if (currentPlayer_.contains("musicfox")) {
+  if (serviceName.contains("musicfox")) {
     currentPlayer_ = serviceName;
     INFO("Using musicfox player: %s", serviceName.c_str());
   }

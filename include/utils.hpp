@@ -73,6 +73,17 @@ inline std::string &trim(std::string &s, const char *t = ws) {
   return ltrim(rtrim(s, t), t);
 }
 
+// 添加毫秒转 00:00 格式的辅助函数
+inline std::string formatMilliseconds(uint64_t ms) {
+  int minutes = ms / 60000;            // 总分钟数 (1分钟=60*1000ms)
+  ms %= 60000;                         // 剩余毫秒数（不足1分钟部分）
+  int seconds = ms / 1000;             // 剩余秒数
+  // 使用 sprintf 兼容旧C++标准，格式化为 "MM:SS"
+  char buffer[10];
+  snprintf(buffer, sizeof(buffer), "%02d:%02d", minutes, seconds);
+  return buffer;
+}
+
 // 将 "[MM:SS.ss]" 格式的时间字符串转换为毫秒数（如 "[04:58.94]" → 298940ms）
 // 返回：成功时为毫秒数，失败时返回 0
 inline uint64_t timestampToMs(const std::string &timestampStr) {
