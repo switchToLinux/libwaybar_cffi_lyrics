@@ -1,6 +1,6 @@
 project(
     'waybar_cffi_lyrics', 'cpp',
-    version: '0.2.3',
+    version: '0.2.5',
     license: 'MIT',
     default_options : ['c_std=c23', 'cpp_std=c++23']
 )

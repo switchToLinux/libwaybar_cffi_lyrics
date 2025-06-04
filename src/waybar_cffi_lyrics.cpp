@@ -1,11 +1,14 @@
 #include "../include/way_lyrics.h"
 #include "../include/waybar_cffi_module.h"
 #include "common.h"
+#include <cstring>
 #include <gtk/gtk.h>
 #include <memory>
 #include <sdbus-c++/sdbus-c++.h>
 
 const size_t wbcffi_version = 1;
+
+int log_level = LOG_LEVEL_NONE;
 
 // 默认配置参数
 constexpr const char *defaultCssClass = "waylyrics-label";
@@ -46,6 +49,7 @@ static ConfigParams parseConfig(const wbcffi_config_entry *config_entries,
 
   for (size_t i = 0; i < config_entries_len; ++i) {
     const auto &entry = config_entries[i];
+    DEBUG("配置项 '%s' 值: %s", entry.key, entry.value);
     if (strncmp(entry.key, "class", 5) == 0) {
       params.cssClass = entry.value;
     } else if (strncmp(entry.key, "id", 2) == 0) {
@@ -64,8 +68,21 @@ static ConfigParams parseConfig(const wbcffi_config_entry *config_entries,
       params.lyricsMaxDuration = std::max(10, atoi(entry.value));
     } else if(strncmp(entry.key, "lyrics-title-max-length", 23) == 0) {
       params.lyricsTitleMaxLength = std::max(10, atoi(entry.value));
+    } else if (strncmp(entry.key, "log_level", 9) == 0) {
+      // 启用调试模式 0-3
+      log_level = atoi(entry.value);
+      if(log_level > 3) {
+        log_level = 3; // 限制最大日志级别为3
+      } else if (log_level < 0) {
+        log_level = 0; // 限制最小日志级别为0
+      }
+      INFO("启用调试模式: log_level: %d", log_level);
+    } else if (strncmp(entry.key, "actions", 7) == 0 ||
+      strncmp(entry.key, "module_path", 11) == 0 ) {
+      // 忽略 actions 和 module_path 配置项
+      INFO("(waybar使用的参数)忽略配置项 '%s'", entry.key);
     } else {
-      DEBUG("waylyrics: 未知配置项 '%s'", entry.key);
+      INFO("未知配置项 '%s'", entry.key);
     }
   }
   if (params.cssClass.empty()) {
@@ -123,7 +140,7 @@ void *wbcffi_init(const wbcffi_init_info *init_info,
     }
     // 创建GTK容器和标签
     GtkContainer *root = init_info->get_root_widget(init_info->obj);
-    inst->container = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 5));
+    inst->container = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5));
     gtk_container_add(GTK_CONTAINER(root), GTK_WIDGET(inst->container));
 
     GtkLabel *label = GTK_LABEL(gtk_label_new(loadingText));
@@ -131,6 +148,7 @@ void *wbcffi_init(const wbcffi_init_info *init_info,
         gtk_widget_get_style_context(GTK_WIDGET(label));
     gtk_style_context_add_class(label_context,
                                 configParams.cssClass.c_str());    // 应用CSS类
+    gtk_style_context_add_class(label_context, "flat module"); // 应用CSS类
     gtk_widget_set_name(GTK_WIDGET(label),
                         configParams.labelId.c_str()); // 设置标签ID
     gtk_container_add(GTK_CONTAINER(inst->container), GTK_WIDGET(label));
