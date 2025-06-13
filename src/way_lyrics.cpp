@@ -264,7 +264,7 @@ static void updateLabelText(GtkLabel *label, const std::string &text,const std::
       // 设置标签文本
       auto content = updateData->text;
       if(updateData->status != "playing") {
-        content = "[ " + updateData->status + " ]" + content;
+        content = content + "[ " + updateData->status + " ]";
       }
       gtk_label_set_text(updateData->label, content.c_str());
       // 添加播放状态对应的 CSS class（如 "playing" 或 "paused"）

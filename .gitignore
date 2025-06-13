@@ -3,3 +3,5 @@ build/
 core.*
 PKGBUILD
 demos/
+aur/
+*.sh
