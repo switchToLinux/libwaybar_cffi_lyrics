@@ -263,8 +263,10 @@ static void updateLabelText(GtkLabel *label, const std::string &text,const std::
     if (GTK_IS_LABEL(updateData->label)) {
       // 设置标签文本
       auto content = updateData->text;
-      if(updateData->status != "playing") {
-        content = content + "[ " + updateData->status + " ]";
+      if(updateData->status == "paused") {
+        content = "[ " + updateData->status + " ]" + content;
+      } else if (updateData->status == "stopped" ) {
+        content = "[ " + updateData->status + " ]";
       }
       gtk_label_set_text(updateData->label, content.c_str());
       // 添加播放状态对应的 CSS class（如 "playing" 或 "paused"）
