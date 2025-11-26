@@ -67,6 +67,8 @@ make install DESTDIR=/path/to/libs/
         "lyrics-title-max-length": 30,
         "lyrics-max-duration": 300,
         "interval": 3,
+        "tooltip": true,
+        "tooltip-format": "CFFI音乐管理\n左键:暂停/播放\n右键: 循环播放\n中键: 随机播放\n下滚: 下一首\n上滚: 上一首",
         "dest": "mpv"
     },
 }
