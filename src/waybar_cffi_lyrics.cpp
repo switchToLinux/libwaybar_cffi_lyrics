@@ -41,6 +41,8 @@ static ConfigParams parseConfig(const wbcffi_config_entry *config_entries,
       .destName = defaultDestName,
       .cacheDir = std::string(getenv("HOME")) + "/.cache/waylyrics",
       .format = defaultFormat,
+      .tooltipFormat = "",
+      .toggleTooltip = 0, // 默认禁用工具提示
       .updateInterval = defaultUpdateInterval,
      .maxLength = defaultMaxLength,
      .lyricsTitleMaxLength = defaultLyricsTitleMaxLength,
@@ -68,6 +70,13 @@ static ConfigParams parseConfig(const wbcffi_config_entry *config_entries,
       params.lyricsMaxDuration = std::max(10, atoi(entry.value));
     } else if(strncmp(entry.key, "lyrics-title-max-length", 23) == 0) {
       params.lyricsTitleMaxLength = std::max(10, atoi(entry.value));
+    } else if (strncmp(entry.key, "tooltip-format", 14) == 0) {
+      params.tooltipFormat = entry.value;
+    } else if (strncmp(entry.key, "tooltip", 7) == 0) {
+      // value取值： true: 启用工具提示, false: 禁用工具提示
+      if (strncmp(entry.value, "true", 4) == 0) {
+        params.toggleTooltip = 1;
+      }
     } else if (strncmp(entry.key, "log_level", 9) == 0) {
       // 启用调试模式 0-3
       log_level = atoi(entry.value);
@@ -78,7 +87,7 @@ static ConfigParams parseConfig(const wbcffi_config_entry *config_entries,
       }
       INFO("启用调试模式: log_level: %d", log_level);
     } else if (strncmp(entry.key, "actions", 7) == 0 ||
-      strncmp(entry.key, "module_path", 11) == 0 ) {
+               strncmp(entry.key, "module_path", 11) == 0) {
       // 忽略 actions 和 module_path 配置项
       INFO("(waybar使用的参数)忽略配置项 '%s'", entry.key);
     } else {
@@ -155,6 +164,11 @@ void *wbcffi_init(const wbcffi_init_info *init_info,
     // 设置标签最大长度(超过部分用...显示)
     gtk_label_set_max_width_chars(label, configParams.maxLength);
     gtk_label_set_ellipsize(label, PANGO_ELLIPSIZE_END);
+
+    // 如果启用了工具提示，设置标签工具提示
+    if (configParams.toggleTooltip) {
+      gtk_widget_set_tooltip_text(GTK_WIDGET(label), configParams.tooltipFormat.c_str());
+    }
 
     inst->wayLyrics->start(label); // 启动歌词显示
 
