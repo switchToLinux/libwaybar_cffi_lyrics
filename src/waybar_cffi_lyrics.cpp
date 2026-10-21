@@ -230,3 +230,9 @@ void wbcffi_finish(void *data) {
   INFO("waylyrics: 实例销毁完成（剩余实例数: %d）", --instance_count);
 }
 
+void wbcffi_deinit(void *instance) {
+  if (!instance)
+    return;
+  free(instance);
+  INFO("waylyrics: 实例销毁完成（剩余实例数: %d）", --instance_count);
+}

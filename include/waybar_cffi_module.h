@@ -1,82 +1,98 @@
-#pragma once  // 防止头文件重复包含
+#pragma once
 
-// 包含GTK3和标准整数类型头文件
-#include <gtk-3.0/gtk/gtk.h>
+#include <gtk/gtk.h>
 #include <stdint.h>
 
-// 确保C++编译时使用C链接规范（兼容C语言调用）
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/// Waybar ABI版本号（应用二进制接口），当前最新版本为1
-/// 用于模块与Waybar主程序之间的版本兼容性检查
+/// Waybar ABI version. 2 is the latest version
 extern const size_t wbcffi_version;
 
-/// Waybar CFFI模块的私有结构体（内部实现细节，外部不可直接操作）
+/// Private Waybar CFFI module
 typedef struct wbcffi_module wbcffi_module;
 
-/// Waybar模块初始化信息结构体（提供模块运行所需的核心接口）
+/// Waybar module information
 typedef struct {
-  /// Waybar CFFI模块对象指针（指向内部私有结构体实例）
-  wbcffi_module* obj;
+  /// Waybar CFFI object pointer
+  wbcffi_module *obj;
 
-  /// Waybar主程序的版本字符串，用于模块适配不同版本
-  const char* waybar_version;
+  /// Waybar version string
+  const char *waybar_version;
 
-  /// 获取Waybar为当前模块分配的GTK容器部件（用于布局模块UI）
-  /// @param obj Waybar CFFI模块对象指针
-  /// @return GTK容器部件指针（GtkContainer类型）
-  GtkContainer* (*get_root_widget)(wbcffi_module* obj);
+  /// Returns the waybar widget allocated for this module
+  /// @param obj Waybar CFFI object pointer
+  GtkContainer *(*get_root_widget)(wbcffi_module *obj);
 
-  /// 请求在GTK主事件循环的下一次迭代中调用wbcffi_update()
-  /// 用于触发模块的UI更新（避免直接在非主线程调用UI操作）
-  /// @param obj Waybar CFFI模块对象指针
-  void (*queue_update)(wbcffi_module*);
+  /// Queues a request for calling wbcffi_update() on the next GTK main event
+  /// loop iteration
+  /// @param obj Waybar CFFI object pointer
+  void (*queue_update)(wbcffi_module *);
 } wbcffi_init_info;
 
-/// 模块配置项的键值对结构体（表示扁平化的JSON配置）
+/// Config key-value pair
 typedef struct {
-  /// 配置项的键名（如"font-size"）
-  const char* key;
-  /// 配置项的值（字符串形式）
-  /// 注：JSON对象/数组会被序列化为字符串（如{"color":"red"}会变成"{'color':'red'}"）
-  const char* value;
+  /// Entry key
+  const char *key;
+  /// Entry value
+  ///
+  /// In ABI version 1, this may be either a bare string if the value is a
+  /// string, or the JSON representation of any other JSON object as a string.
+  ///
+  /// From ABI version 2 onwards, this is always the JSON representation of the
+  /// value as a string.
+  const char *value;
 } wbcffi_config_entry;
 
-/// 模块初始化函数（模块加载时必须实现的核心函数）
-/// 在模块实例化时由Waybar主程序调用
-/// @param init_info 包含模块运行所需的核心接口（如获取UI部件、触发更新等）
-/// @param config_entries 模块配置的扁平化键值对数组（仅在初始化期间有效）
-/// @param config_entries_len 配置项数量
-/// @return 模块实例数据指针（由模块自定义类型，NULL表示初始化失败）
-void* wbcffi_init(const wbcffi_init_info* init_info, const wbcffi_config_entry* config_entries,
+/// Module init/new function, called on module instantiation
+///
+/// MANDATORY CFFI function
+///
+/// @param init_info          Waybar module information
+/// @param config_entries     Flat representation of the module JSON config. The
+/// data only available
+///                           during wbcffi_init call.
+/// @param config_entries_len Number of entries in `config_entries`
+///
+/// @return A untyped pointer to module data, NULL if the module failed to load.
+void *wbcffi_init(const wbcffi_init_info *init_info,
+                  const wbcffi_config_entry *config_entries,
                   size_t config_entries_len);
 
-/// 模块反初始化函数（模块卸载时必须实现的核心函数）
-/// 在Waybar关闭或模块被移除时调用，用于释放模块资源
-/// @param instance 模块实例数据指针（由wbcffi_init返回）
-void wbcffi_deinit(void* instance);
+/// Module deinit/delete function, called when Waybar is closed or when the
+/// module is removed
+///
+/// MANDATORY CFFI function
+///
+/// @param instance Module instance data (as returned by `wbcffi_init`)
+void wbcffi_deinit(void *instance);
 
-/// 模块UI更新函数（可选实现）
-/// 由GTK主事件循环调用（通过queue_update触发），用于更新模块UI内容
-/// @param instance 模块实例数据指针（由wbcffi_init返回）
-void wbcffi_update(void* instance);
+/// Called from the GTK main event loop, to update the UI
+///
+/// Optional CFFI function
+///
+/// @param instance Module instance data (as returned by `wbcffi_init`)
+/// @param action_name Action name
+void wbcffi_update(void *instance);
 
-/// 信号响应函数（可选实现）
-/// 当Waybar接收到POSIX信号（如SIGUSR1）时调用，用于模块自定义信号处理
-/// @param instance 模块实例数据指针（由wbcffi_init返回）
-/// @param signal 接收到的信号ID（如SIGINT=2）
-void wbcffi_refresh(void* instance, int signal);
+/// Called when Waybar receives a POSIX signal and forwards it to each module
+///
+/// Optional CFFI function
+///
+/// @param instance Module instance data (as returned by `wbcffi_init`)
+/// @param signal Signal ID
+void wbcffi_refresh(void *instance, int signal);
 
-/// 动作处理函数（可选实现）
-/// 当用户触发模块配置中的动作（如点击事件）时调用
-/// （参考：https://github.com/Alexays/Waybar/wiki/Configuration#module-actions-config）
-/// @param instance 模块实例数据指针（由wbcffi_init返回）
-/// @param action_name 触发的动作名称（如"toggle"）
-void wbcffi_doaction(void* instance, const char* action_name);
+/// Called on module action (see
+/// https://github.com/Alexays/Waybar/wiki/Configuration#module-actions-config)
+///
+/// Optional CFFI function
+///
+/// @param instance Module instance data (as returned by `wbcffi_init`)
+/// @param action_name Action name
+void wbcffi_doaction(void *instance, const char *action_name);
 
-// 结束extern "C"块
 #ifdef __cplusplus
 }
 #endif
